@@ -1,0 +1,7 @@
+node_modules/
+auth-state.json
+*.env
+.env*
+bin/
+obj/
+*.log

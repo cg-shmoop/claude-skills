@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unlabeled Forms | BrailleTest Fixture</title>
+</head>
+<body>
+  <main role="main">
+    <h1>Account Settings</h1>
+
+    <form action="/settings" method="post">
+      <div>
+        <span>Name:</span>
+        <input type="text" name="name" placeholder="Enter your name">
+      </div>
+      <div>
+        <span>Email:</span>
+        <input type="email" name="email">
+      </div>
+      <div>
+        <input type="text" name="phone">
+      </div>
+      <div>
+        <select name="country">
+          <option value="">Select...</option>
+          <option value="us">United States</option>
+          <option value="uk">United Kingdom</option>
+        </select>
+      </div>
+      <div>
+        <input type="checkbox" name="newsletter">
+        Subscribe to newsletter
+      </div>
+      <div>
+        <input type="checkbox" name="terms">
+        I agree to the <a href="#">terms</a>
+      </div>
+      <div>
+        <input type="submit" value="Save">
+      </div>
+    </form>
+  </main>
+</body>
+</html>

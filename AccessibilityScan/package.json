@@ -1,0 +1,19 @@
+{
+  "name": "@pai/accessibility-scan",
+  "version": "1.0.0",
+  "description": "WCAG 2.2 AA accessibility scanning with axe-core and Playwright",
+  "type": "module",
+  "scripts": {
+    "scan": "bun Tools/Scan.ts",
+    "auth": "bun Tools/Authenticate.ts"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "playwright": "^1.49.0",
+    "axe-html-reporter": "^2.2.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.0",
+    "tsx": "^4.21.0"
+  }
+}

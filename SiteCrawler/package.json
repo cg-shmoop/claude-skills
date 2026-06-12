@@ -1,0 +1,13 @@
+{
+  "name": "site-crawler",
+  "version": "1.0.0",
+  "description": "Browser-based site crawler for URL discovery",
+  "private": true,
+  "scripts": {
+    "crawl": "npx tsx Tools/Crawl.ts"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0",
+    "tsx": "^4.21.0"
+  }
+}

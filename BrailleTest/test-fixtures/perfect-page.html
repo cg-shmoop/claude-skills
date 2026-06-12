@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfect Accessibility Page | BrailleTest Fixture</title>
+</head>
+<body>
+  <header role="banner">
+    <nav role="navigation" aria-label="Main navigation">
+      <ul>
+        <li><a href="#main">Skip to main content</a></li>
+        <li><a href="/about">About Us</a></li>
+        <li><a href="/contact">Contact Support</a></li>
+        <li><a href="/help">Help Center</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="main" role="main">
+    <h1>Welcome to the Test Page</h1>
+    <p>This page demonstrates perfect accessibility for braille display users.</p>
+
+    <section aria-labelledby="features-heading">
+      <h2 id="features-heading">Features</h2>
+      <p>Our platform offers several key features for students.</p>
+
+      <h3>Reading Assignments</h3>
+      <p>Access your reading assignments from the dashboard.</p>
+
+      <h3>Practice Quizzes</h3>
+      <p>Take practice quizzes to test your knowledge.</p>
+    </section>
+
+    <section aria-labelledby="login-heading">
+      <h2 id="login-heading">Log In</h2>
+      <form action="/login" method="post" aria-label="Login form">
+        <div>
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required aria-required="true">
+        </div>
+        <div>
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required aria-required="true">
+        </div>
+        <div>
+          <input type="checkbox" id="remember" name="remember">
+          <label for="remember">Remember me</label>
+        </div>
+        <button type="submit">Log In</button>
+      </form>
+    </section>
+
+    <section aria-labelledby="data-heading">
+      <h2 id="data-heading">Recent Grades</h2>
+      <table aria-label="Student grades">
+        <caption>Your grades for this semester</caption>
+        <thead>
+          <tr>
+            <th scope="col">Assignment</th>
+            <th scope="col">Score</th>
+            <th scope="col">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Romeo and Juliet Essay</td>
+            <td>92%</td>
+            <td>Feb 10, 2026</td>
+          </tr>
+          <tr>
+            <td>Poetry Analysis</td>
+            <td>88%</td>
+            <td>Feb 7, 2026</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer role="contentinfo">
+    <p>&copy; 2026 Test Site. <a href="/privacy">Privacy Policy</a> | <a href="/terms">Terms of Service</a></p>
+  </footer>
+</body>
+</html>

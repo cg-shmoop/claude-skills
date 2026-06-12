@@ -1,0 +1,19 @@
+{
+  "name": "braille-test",
+  "version": "1.0.0",
+  "description": "JAWS braille screen reader testing agent for accessibility auditing",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "bun test",
+    "agent": "bun Tools/BrailleAgent.ts"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "bun-types": "^1.3.9",
+    "typescript": "^5.7.0"
+  }
+}
