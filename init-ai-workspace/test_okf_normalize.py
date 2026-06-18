@@ -31,7 +31,7 @@ def test_parse_no_frontmatter_returns_none():
 
 def test_parse_malformed_yaml_does_not_raise():
     # unquoted source value with a colon — invalid YAML; must NOT crash, returns None
-    bad = "---\ntype: pattern\nsource: session 2026-06-12 (Chris: left/right diverge)\n---\n\nbody\n"
+    bad = "---\ntype: pattern\nsource: session 2026-06-12 (Sam: left/right diverge)\n---\n\nbody\n"
     fm, body = okf.parse_frontmatter(bad)   # would raise yaml.YAMLError before the fix
     assert fm is None
 
@@ -39,7 +39,7 @@ def test_parse_malformed_yaml_does_not_raise():
 def test_malformed_note_does_not_crash_run_and_others_still_processed(tmp_path):
     write(tmp_path / "schema_good.md", "type: schema\ntitle: Good\ndescription: d\ntimestamp: 2026-01-01T00:00:00Z\ncreated: 2026-01-01\nsource: s")
     (tmp_path / "pattern_bad.md").write_text(
-        "---\ntype: pattern\nsource: session (Chris: left/right)\n---\n\nb\n", encoding="utf-8")
+        "---\ntype: pattern\nsource: session (Sam: left/right)\n---\n\nb\n", encoding="utf-8")
     rc = okf.main([str(tmp_path)])          # bare run — must complete, not crash
     assert rc == 1                          # the malformed note is an error -> nonzero
     # the good note was still reachable (no crash mid-iteration); reindex sees it
@@ -54,6 +54,73 @@ def test_reference_is_a_valid_type():
         {"type": "reference", "title": "T", "description": "d"}, {}, "reference_x.md", today=TODAY)
     assert not any("outside our enum" in c for c in changes)
     assert okf._slug_token("reference_pipeline-tools") == "pipeline"  # reference_ prefix stripped
+
+
+# ---- review (promotion queue) ----
+
+def test_review_lists_only_unverified(tmp_path):
+    base = "type: schema\ntitle: {t}\ndescription: d\ntimestamp: 2026-01-01T00:00:00Z\ncreated: 2026-01-01\nsource: s\nstatus: {s}"
+    write(tmp_path / "schema_a.md", base.format(t="A", s="unverified"))
+    write(tmp_path / "schema_b.md", base.format(t="B", s="verified"))
+    write(tmp_path / "sub" / "schema_c.md", base.format(t="C", s="unverified"))  # nested counts
+    rows = okf.review_unverified(tmp_path)
+    assert {p.name for p, _ in rows} == {"schema_a.md", "schema_c.md"}  # excludes the verified note
+    assert okf.main([str(tmp_path), "--review"]) == 0                   # read-only, exits 0
+
+
+# ---- suggest-links (v0.7) ----
+
+def test_suggest_links_surfaces_unlinked_pair_and_excludes_linked(tmp_path):
+    base = "type: schema\ntitle: {t}\ndescription: {d}\nsource: s\nstatus: unverified"
+    # two notes share the salient term "invoice" but are NOT linked -> should surface
+    write(tmp_path / "schema_invoice_api.md", base.format(t="Invoice API", d="invoice payment fields"))
+    write(tmp_path / "schema_invoice_db.md", base.format(t="Invoice DB", d="invoice payment table"))
+    # an unrelated note shares nothing salient
+    write(tmp_path / "schema_widget.md", base.format(t="Widget", d="ui widget toggle"))
+    pairs = okf.suggest_links(tmp_path, min_score=1)
+    names = {frozenset({pa.name, pb.name}) for _s, pa, pb, _sh in pairs}
+    assert frozenset({"schema_invoice_api.md", "schema_invoice_db.md"}) in names
+    # now link them with a typed relation -> the pair must drop out
+    text = (tmp_path / "schema_invoice_api.md").read_text(encoding="utf-8")
+    (tmp_path / "schema_invoice_api.md").write_text(
+        text.replace("status: unverified",
+                     "status: unverified\nrelations:\n  - relates schema_invoice_db.md"), encoding="utf-8")
+    pairs2 = okf.suggest_links(tmp_path, min_score=1)
+    names2 = {frozenset({pa.name, pb.name}) for _s, pa, pb, _sh in pairs2}
+    assert frozenset({"schema_invoice_api.md", "schema_invoice_db.md"}) not in names2
+    assert okf.main([str(tmp_path), "--suggest-links"]) == 0   # read-only, exits 0
+
+
+# ---- agent-memory adoptions (v0.6): workaround type, typed relations, decay ----
+
+def test_workaround_is_a_valid_type():
+    assert "workaround" in okf.TYPE_ENUM
+    new, changes, errors = okf.normalize_fm(
+        {"type": "workaround", "title": "T", "description": "d"}, {}, "workaround_x.md", today=TODAY)
+    assert not any("outside our enum" in c for c in changes)
+
+
+def test_relations_typed_and_validated(tmp_path):
+    (tmp_path / "schema_target.md").write_text("---\ntype: schema\n---\nx\n", encoding="utf-8")
+    note = tmp_path / "decision_x.md"
+    base = {"type": "decision", "title": "X", "description": "d", "source": "s"}
+    body = "b\n\n**Verify:** y\n"
+    ok = okf.check_provenance({**base, "relations": ["supersedes schema_target.md"]}, body, note, tmp_path, today=TODAY)
+    assert not any("relation" in w for w in ok)                       # valid verb + resolving target
+    bad_verb = okf.check_provenance({**base, "relations": ["frobnicates schema_target.md"]}, body, note, tmp_path, today=TODAY)
+    assert any("verb in" in w for w in bad_verb)
+    broken = okf.check_provenance({**base, "relations": ["supersedes missing.md"]}, body, note, tmp_path, today=TODAY)
+    assert any("relation target not found" in w for w in broken)
+
+
+def test_verified_on_decay_warns(tmp_path):
+    note = tmp_path / "schema_x.md"
+    base = {"type": "schema", "title": "X", "description": "d", "source": "s", "status": "verified"}
+    body = "b\n\n**Verify:** y\n"
+    old = okf.check_provenance({**base, "verified_on": "2026-01-01"}, body, note, tmp_path, today="2026-06-18")
+    assert any("decays" in w for w in old)                            # >90d -> decay warning
+    fresh = okf.check_provenance({**base, "verified_on": "2026-06-17"}, body, note, tmp_path, today="2026-06-18")
+    assert not any("decays" in w for w in fresh)                      # recent -> no warning
 
 
 # ---- normalize_fm ----

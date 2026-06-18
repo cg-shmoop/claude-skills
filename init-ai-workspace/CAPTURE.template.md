@@ -34,27 +34,51 @@ Do NOT cache live state (counts, what's deployed) — query that at runtime; a c
 ## Atomic file format (`ai/memory/*.md`) — literal OKF + our extensions
 
 One concept per file. Filename = `TYPE_short-kebab-slug.md`, TYPE ∈
-`gotcha | schema | decision | pattern | runbook | reference` (our enum doubles as the OKF `type` value).
+`gotcha | workaround | schema | decision | pattern | runbook | reference` (our enum doubles as the OKF `type` value).
 
 ```markdown
 ---
-type: gotcha | schema | decision | pattern | runbook | reference   # OKF-required, non-empty
+type: gotcha | workaround | schema | decision | pattern | runbook | reference  # OKF-required, non-empty
 title: Short human title
-description: one-line hook (mirrors this note's index line)
-timestamp: YYYY-MM-DDT00:00:00Z                         # ISO 8601 (formerly `updated`)
-tags: [topic, area]                                     # for filtering; [] if none yet
-source: <file:line | plan-N | session YYYY-MM-DD | URL> # extension — provenance
+description: one-line hook (mirrors this note's index line)   # the "summary" of the fact
+timestamp: YYYY-MM-DDT00:00:00Z                         # ISO 8601 — LAST meaningful change (formerly `updated`)
+created: YYYY-MM-DD                                      # set-once; never edited after
+valid_as_of: YYYY-MM-DD                                  # OPTIONAL — as-of date for a snapshot fact
+source: <file:line | plan-N | session YYYY-MM-DD | URL> # extension — provenance (mandatory)
 status: verified | unverified | stale                   # extension — anti-rot
+verified_on: YYYY-MM-DD                                  # OPTIONAL — when a human last confirmed; decays >90d
+tags: [topic, area]                                     # OPTIONAL — only if you'll use the viewer filter
+relations:                                               # OPTIONAL — typed edges to other notes
+  - supersedes old/decision_x.md                         #   verb ∈ supersedes|extends|refines|contradicts|relates|duplicates
 ---
 
-The distilled fact, stated plainly. Short. Link related notes inline: [other note](type_slug.md).
+The distilled fact, stated plainly (the "detail"). Short. Link related notes inline: [other note](type_slug.md).
 
+**Action:** what to DO about it (the actionable takeaway — esp. for gotcha/workaround/pattern).
 **Verify:** the exact command / file:line / check that confirms this is still true.
 ```
 
 `type` is the only field OKF *requires*; we additionally require `source` + `**Verify:**` — the
-anti-rot mechanism (a note without provenance is worth less than no note). `description` / `tags` /
-`timestamp` are OKF-recommended; keep them populated.
+anti-rot mechanism (a note without provenance is worth less than no note). `description` / `timestamp`
+are OKF-recommended; `created`, `tags`, `valid_as_of`, `verified_on`, `relations` are optional — add
+each only when it carries weight (don't stub them).
+
+### Note shape & lifecycle (refinements from agent-memory prior art — cq, beads, Zep)
+
+All are validated by `--check`:
+
+- **summary → detail → action** (cq): `description` is the summary, the body is the detail, an
+  `**Action:**` line says what to do. Most valuable on `gotcha`/`workaround`/`pattern`.
+- **Typed `relations`** (beads/cq): declare the *kind* of edge — `supersedes | extends | refines |
+  contradicts | relates | duplicates` + a resolving path; `--check` validates the verb + target.
+- **`workaround` type** (cq lifecycle.kind): a TEMPORARY fix, distinct from a permanent `gotcha`; when
+  tooling makes it obsolete, the replacement carries `relations: [supersedes <workaround>]`.
+- **Decay** (cq confirm-or-decay): set `verified_on` when promoting to `status: verified`; `--check`
+  warns once it's >90 days old. Anti-rot with a clock.
+- **`valid_as_of`** (Zep bi-temporal, lite): the as-of date for a snapshot fact.
+
+Deliberately skipped: numeric confidence scores + multi-org aggregation (YAGNI for a single-author
+wiki); verbatim store-everything (we distill on purpose).
 
 ## OKF is the standard (`ai/memory/` is an Open Knowledge Format bundle)
 
