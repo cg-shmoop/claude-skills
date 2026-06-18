@@ -11,7 +11,7 @@ No active thread captured yet. Read `{{STATUS}}` for where the project stands.
 ## Refill context (read in this order)
 1. `ai/README.md` — the index of indexes (what to read for your situation).
 2. `{{STATUS}}` — project + plan status (single source of truth).
-3. `ai/memory/INDEX.md` — durable facts (open only what's relevant; run each note's `Verify:`).
+3. `ai/memory/index.md` — durable facts (open only what's relevant; run each note's `Verify:`).
 
 ## What's true right now
 - (populated at session end: what's committed vs untracked, what's deployed, in-flight edits)

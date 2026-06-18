@@ -20,7 +20,7 @@ a way to re-verify it.
 |------|----------|--------|
 | Time-based — what happened, decisions, pick-up state | `ai/{{SESSION_DIR}}/YYYY-MM-DD-topic.md` | Append-only journal. Frozen after. |
 | Time-based — feature specs during a build | `ai/plans/*.md` | Frozen after the build. |
-| Timeless — gotchas, constants, decisions, patterns, runbooks | `ai/memory/*.md` + `ai/memory/INDEX.md` | A wiki. Deduplicated, edited in place. |
+| Timeless — gotchas, constants, decisions, patterns, runbooks | `ai/memory/*.md` + `ai/memory/index.md` | A wiki. Deduplicated, edited in place. |
 | Current status | the project status doc (root) | Single source of truth. Updated every session. |
 
 Rule of thumb: still true in six months → `ai/memory/`. "What we did on this date" → `ai/{{SESSION_DIR}}/`.
@@ -31,27 +31,50 @@ Do NOT cache live state (counts, what's deployed) — query that at runtime; a c
 
 ---
 
-## Atomic file format (`ai/memory/*.md`)
+## Atomic file format (`ai/memory/*.md`) — literal OKF + our extensions
 
 One concept per file. Filename = `TYPE_short-kebab-slug.md`, TYPE ∈
-`gotcha | schema | decision | pattern | runbook`.
+`gotcha | schema | decision | pattern | runbook | reference` (our enum doubles as the OKF `type` value).
 
 ```markdown
 ---
+type: gotcha | schema | decision | pattern | runbook | reference   # OKF-required, non-empty
 title: Short human title
-type: gotcha | schema | decision | pattern | runbook
-updated: YYYY-MM-DD
-source: <file:line | plan-N | session YYYY-MM-DD | external URL>
-status: verified | unverified | stale
+description: one-line hook (mirrors this note's index line)
+timestamp: YYYY-MM-DDT00:00:00Z                         # ISO 8601 (formerly `updated`)
+tags: [topic, area]                                     # for filtering; [] if none yet
+source: <file:line | plan-N | session YYYY-MM-DD | URL> # extension — provenance
+status: verified | unverified | stale                   # extension — anti-rot
 ---
 
-The distilled fact, stated plainly. Short.
+The distilled fact, stated plainly. Short. Link related notes inline: [other note](type_slug.md).
 
 **Verify:** the exact command / file:line / check that confirms this is still true.
 ```
 
-`source` and `**Verify:**` are mandatory — the anti-rot mechanism. A note without provenance
-is worth less than no note.
+`type` is the only field OKF *requires*; we additionally require `source` + `**Verify:**` — the
+anti-rot mechanism (a note without provenance is worth less than no note). `description` / `tags` /
+`timestamp` are OKF-recommended; keep them populated.
+
+## OKF is the standard (`ai/memory/` is an Open Knowledge Format bundle)
+
+This bundle targets [OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf)
+literally — a published, external standard, deliberately chosen so the format is *not yours to
+drift*. The frontmatter above **is** the standard; don't invent variants. Rules:
+
+- **Reserved files** carry no frontmatter: `index.md` (the TOC — lowercase) and optional `log.md`
+  (a changelog). All other `.md` are concepts.
+- **`type` is the one hard OKF rule** — every concept needs a non-empty `type`.
+- `description` / `timestamp` (ISO 8601) / `tags` are OKF-recommended and kept populated.
+- `source` / `status` / `**Verify:**` are *our extensions* — OKF tolerates unknown keys, so
+  conforming to OKF does **not** cost the anti-rot discipline. Keep them.
+- **Link related notes inline.** OKF builds its graph from markdown links *inside* concept bodies
+  (`[other note](type_slug.md)`), not from `index.md` (skipped). A bundle whose connections live
+  only in the index renders as disconnected dots. Cross-link notes to each other in their bodies.
+
+**Enforcement — don't hand-maintain conformance.** Run the `/init-ai-workspace` conformance pass
+(`okf_normalize.py`): it rewrites `updated→timestamp`, derives `description` from the index hook,
+adds `tags`, and flags a legacy `INDEX.md` for rename to `index.md` plus any off-convention filename. Dry-run first, then `--apply`.
 
 ## Capturing "posted intent" (decisions + the why)
 
@@ -66,15 +89,28 @@ capture. Record each as a `decision_*.md`:
 
 ---
 
+## Layout — flat until it earns folders, then by topic
+Notes fold **by topic/domain** (`clients/`, a subsystem, a workstream), not by type — you retrieve
+"everything about X" (a schema + a decision + a runbook), which type-folders would scatter. Type
+stays in the `TYPE_` filename prefix + `type:` frontmatter. Keep a bundle **flat until ~20–25 notes**
+(or until one topic would hold ≥5); a 1-file topic dir is noise — leave generic/cross-cutting notes
+at the root. Concept-id is the path (`topic/schema_x`); cross-dir links bundle-absolute (`/topic/x.md`),
+same-dir links relative.
+
+## Indexes are generated, never hand-written
+`index.md` (root + per-topic) is **derived from concept frontmatter** by `okf_normalize.py --reindex`.
+Durable prose lives above the `<!-- okf-index:auto -->` marker (preserved); below it is regenerated.
+
 ## Write procedure (session end / when a learning lands)
-1. **Check `ai/memory/INDEX.md` first** — if a note exists, EDIT it (don't duplicate).
+1. **Scan `ai/memory/index.md` first** — if a note exists, EDIT it (don't duplicate).
 2. If it contradicts an existing note, fix or mark the old one `status: stale` and say what misled you.
-3. Write/edit the atomic file with full frontmatter + `**Verify:**`.
-4. Add/refresh the one-line pointer in `INDEX.md`.
+3. Write/edit the atomic file (in the right topic dir) with full frontmatter + `**Verify:**`; link any
+   genuinely related note inline in the body.
+4. **Regenerate indexes:** `okf_normalize.py ai/memory --reindex` (don't hand-edit the index).
 5. (Optional) propose it to a shared knowledge commons (e.g. `cq`) — `ai/memory/` is the durable source.
 
 ## Read procedure (session start)
-1. Read `ai/memory/INDEX.md` (cheap TOC).
+1. Read `ai/memory/index.md` (cheap TOC) → drill into the relevant topic's `index.md`.
 2. Open only the atomic files relevant to the task.
 3. Before acting on a note that names a file/flag/value, run its `**Verify:**` check.
 

@@ -42,8 +42,9 @@ Check and report:
 - Project **status doc** — `STATUS.md` at root? a different name/path? Note it; it's `{{STATUS}}`
   in the templates (default `STATUS.md`). If none exists, the index will still point at the
   intended path — flag that the project should start one.
-- `ai/memory/INDEX.md` — exists? `ai/CAPTURE.md`? `ai/README.md`? If `ai/README.md` exists but is
-  an older "folder map" (no index-of-indexes / no situation read-order table), offer to upgrade it.
+- `ai/memory/index.md` — exists? (or a legacy uppercase `INDEX.md` — note it; Phase 4 renames it to
+  the OKF-reserved lowercase `index.md`.) `ai/CAPTURE.md`? `ai/README.md`? If `ai/README.md` exists
+  but is an older "folder map" (no index-of-indexes / no situation read-order table), offer to upgrade it.
 - Session journal dir — does `ai/session/` (singular) or `ai/sessions/` (plural) already exist?
   Note which spelling is in use; you will **reuse it**, not create the other variant.
 Summarize what will be created/migrated/skipped, then proceed.
@@ -70,7 +71,15 @@ Skip entirely if there's already an `ai/` and no `.ai/`. If `.ai/` exists:
 ---
 
 ## Phase 2 — Scaffold the `ai/` structure (create only what's missing)
-Create dirs if absent: `ai/`, `ai/memory/`, `ai/plans/`, and the session journal dir.
+Create dirs if absent: `ai/`, `ai/memory/`, `ai/plans/`, `ai/scripts/`, and the session journal dir.
+
+**Tooling is global, not vendored.** The engine (`okf_normalize.py`), the graph viewer (`okf-viewer/`),
+and the Stop hook live ONCE in this skill dir / `~/.claude/hooks/` — never copy them into a project.
+The only per-project "script" is a 10-line pointer: copy this skill's **`okf.shim.sh`** to
+`ai/scripts/okf` (create only if absent) and `chmod +x` it. It resolves the global engine/viewer and
+defaults the bundle to `ai/memory`, so commands are just `ai/scripts/okf --check` / `--reindex` /
+`--render`. Add `ai/okf-memory-graph.html` (the viewer's regenerable output) to `.gitignore`.
+
 **Session dir spelling — reuse, don't duplicate:** both `ai/session/` (singular, canonical
 default) and `ai/sessions/` (plural) are valid. If either already exists, use that one and
 do NOT create the other. Only when neither exists, create `ai/session/`. Whichever spelling
@@ -82,7 +91,7 @@ If a file exists, leave it untouched and note it as "kept".
 **`ai/README.md`** — the **index of indexes** (the entry point that routes to every other
 index). Copy this skill's `README.template.md` and substitute `{{PROJECT}}` / `{{SESSION_DIR}}`
 / `{{STATUS}}` (the status-doc path, default `STATUS.md`). It points *up* at the root-level
-`RESUME.md` and `{{STATUS}}` via `../`, and *down* at `memory/INDEX.md`, the session log, and
+`RESUME.md` and `{{STATUS}}` via `../`, and *down* at `memory/index.md`, the session log, and
 `plans/`, with a "which index do I open?" read-order table.
 **Upgrade case:** if `ai/README.md` already exists as an older flat "folder map" (no
 index-of-indexes framing, no situation read-order table), show the diff and offer to replace
@@ -90,13 +99,23 @@ it with the template — this is the one create-only file worth upgrading in pla
 
 **`ai/CAPTURE.md`** — copy the canonical protocol (the version in this skill's companion
 `CAPTURE.template.md` if present, else write the protocol covering: timeless-vs-time-based
-split; atomic file format with `type`, `updated`, `source`, `status` frontmatter + a mandatory
-`**Verify:**` line; the `decision_` "posted intent" format with **Why:**/**Supersedes:**;
-denormalize-the-timeless / query-the-live; write-procedure = check INDEX first, edit-don't-dupe,
-flag stale, add INDEX pointer; read-procedure = read INDEX at start, verify-on-use; and what
-NOT to capture — anything derivable from code/git, volatile metrics, or secrets).
+split; the literal-OKF atomic file format — `type` (OKF-required, non-empty), `title`,
+`description`, `timestamp` (ISO 8601), `tags`, plus our `source`/`status` extensions and a
+mandatory `**Verify:**` line; the `decision_` "posted intent" format with **Why:**/**Supersedes:**;
+denormalize-the-timeless / query-the-live; write-procedure = check `index.md` first, edit-don't-dupe,
+flag stale, add the `index.md` pointer, link related notes inline; read-procedure = read `index.md`
+at start, verify-on-use; and what NOT to capture — anything derivable from code/git, volatile
+metrics, or secrets).
 
-**`ai/memory/INDEX.md`** — the wiki TOC:
+The scaffolded `ai/memory/` is an **[Open Knowledge Format](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf)
+(OKF) bundle** — a published external standard (markdown + YAML frontmatter, non-empty `type` per
+concept), extended with our `source`/`status`/`**Verify:**` anti-rot discipline (OKF tolerates the
+extra keys). The CAPTURE template carries the canonical frontmatter; the **reserved index file is
+lowercase `index.md`** and carries no frontmatter. Phase 4 normalizes an existing bundle to this
+standard. (The OKF graph viewer is a GLOBAL tool in this skill dir — `okf-viewer/render.py`, reached
+per-project via the thin `ai/scripts/okf --render` shim; it is NOT vendored into each project.)
+
+**`ai/memory/index.md`** — the wiki TOC (OKF-reserved; no frontmatter):
 ```markdown
 # Memory Index (timeless wiki TOC)
 
@@ -134,20 +153,68 @@ re-runs are idempotent.
 ### 3b — `CLAUDE.md` (the agent router)
 - **No root `CLAUDE.md`:** create it with the section from `claude-md-section.template.md`.
 - **Exists, already has `<!-- knowledge-system -->`:** skip (idempotent). If the existing marked
-  section still says "skim `ai/memory/INDEX.md`" first (the pre-index-of-indexes wording), offer
+  section still says "skim `ai/memory/index.md`" first (the pre-index-of-indexes wording), offer
   to replace the marked block with the current template (which routes to `ai/README.md` first).
 - **Exists, missing the marker:** *append* the section (do not touch existing content).
 
 Use this skill's **`claude-md-section.template.md`** (substitute `{{SESSION_DIR}}` / `{{STATUS}}`).
 It routes the agent to `ai/README.md` (the index of indexes) **first**, then to RESUME / status /
-`memory/INDEX.md` by situation — matching the index the workspace now exposes.
+`memory/index.md` by situation — matching the index the workspace now exposes.
 
 ---
 
-## Phase 4 — Verify & report
+## Phase 4 — OKF conformance pass (normalize an existing bundle; approval-gated)
+Bring an existing `ai/memory/` to the literal-OKF standard so the format stops drifting between
+sessions. **Skip if `ai/memory/` has no concept files yet** (a fresh scaffold is born conformant).
+This phase has the same discipline as Phase 1: detect → report → get a yes → fix → verify.
+
+The mechanical engine is this skill's **`okf_normalize.py`** (deps: `pyyaml` only). It splits the
+work: it **rewrites frontmatter** itself, and only **reports** renames (which need repo-wide
+reference fixups — those are your job, below).
+
+1. **Dry-run report (never mutate first):**
+   `python <skill-dir>/okf_normalize.py ai/memory`
+   It lists per-file frontmatter changes (`updated→timestamp`, `description` derived from the
+   `index.md` hook, `tags: []` added), any concept it **can't** fix (missing `type`, or no index
+   hook to source a `description` from — a human must write those), a `RENAMES:` block
+   (`INDEX.md→index.md`, off-convention filenames), and — if the bundle is flat and ≥~20 concepts —
+   a `SUGGESTION:` block with a rough slug-token tally to seed foldering (step 5).
+2. **Show the user the report and get approval** before any write. If files need a human-written
+   `description`/`type`, surface them — don't invent prose.
+3. **Apply frontmatter:** `python <skill-dir>/okf_normalize.py ai/memory --apply`.
+4. **Perform the renames with reference fixups** (the dangerous part — a bare `mv` corrupts links):
+   for each rename in the report, `git mv OLD NEW` (or `mv` if non-git), then rewrite every inbound
+   reference across the repo — `index.md` body links, `CLAUDE.md`, `README.md`, sibling notes,
+   sessions, plans. Reuse Phase 1's grep-then-sed recipe (and hand-Edit Windows backslash paths).
+   For `INDEX.md→index.md` on a case-insensitive filesystem, rename via a temp
+   (`git mv INDEX.md _index.tmp && git mv _index.tmp index.md`) so the case change actually takes.
+5. **Fold by topic if the bundle has earned it** (the dry-run prints a `SUGGESTION:` when flat and
+   ≥~20 notes). The script's slug-token tally is a **rough hint, not the answer** — it mislabels
+   token accidents (`lapsed-acme-*` → `lapsed`) and can't tell that related domains belong in one folder
+   (e.g. a `db` note really belongs with `infra`) or spot domain-less notes. **Read the notes and refine it:** fold by
+   **topic/domain** (`acme/`, `billing/`), keep the `TYPE_` prefix, file singletons into the right
+   cluster's folder, leave generic/cross-cutting notes at root. Foldering is **placement only** —
+   `git mv` (or `mv`) each whole note into its topic dir, dropping a now-redundant topic token from
+   the slug, and rewrite inbound refs. **Never combine note contents** — one concept per file is
+   invariant; deduping two notes about the same fact is a *separate* capture-time step, not foldering.
+   **Propose the refined mapping and get a yes — don't auto-bucket.** Skip for small/flat bundles.
+6. **Regenerate indexes (generated, never hand-written):**
+   `python <skill-dir>/okf_normalize.py ai/memory --reindex` — emits root + per-topic `index.md`
+   from concept frontmatter, preserving prose above the `<!-- okf-index:auto -->` marker.
+7. **Verify clean:** re-run the dry-run — 0 frontmatter changes, 0 renames pending. Then
+   `git grep -n 'INDEX\.md'` should return nothing in tracked files (frozen session notes excepted).
+8. **Regenerate the graph** with the global viewer: `ai/scripts/okf --render` (or
+   `python <skill-dir>/okf-viewer/render.py ai/memory ai/okf-memory-graph.html`). It's nesting-aware
+   (hierarchical concept-ids); the HTML output is a per-project artifact (gitignore it).
+
+Conformance is enforced by the tool, not by hand — re-running this phase is the idempotent check.
+
+## Phase 5 — Verify & report
 - `git grep -n '\.ai[/\\]'` returns nothing (if a migration ran).
+- **OKF conformance** (if Phase 4 ran): `python <skill-dir>/okf_normalize.py ai/memory` reports 0
+  changes / 0 renames pending, and `git grep -n 'INDEX\.md'` returns nothing.
 - **Index of indexes resolves:** every link in `ai/README.md` points at a real path —
-  `../RESUME.md`, `../{{STATUS}}`, `memory/INDEX.md`, `{{SESSION_DIR}}/`, `plans/`, `CAPTURE.md`.
+  `../RESUME.md`, `../{{STATUS}}`, `memory/index.md`, `{{SESSION_DIR}}/`, `plans/`, `CAPTURE.md`.
   (If `{{STATUS}}` doesn't exist yet, flag it: the project should start its status doc.)
 - **Both front doors wired:** root `README.md` and `CLAUDE.md` each contain one
   `<!-- knowledge-system -->` block pointing at `ai/README.md`.
@@ -165,3 +232,12 @@ It routes the agent to `ai/README.md` (the index of indexes) **first**, then to 
 - Blanket-sed'ing backslash Windows paths (escaping breaks) — Edit those by hand.
 - Declaring done without `git grep` proving zero `.ai/` stragglers.
 - Committing the rename tangled with unrelated working-tree changes without flagging it.
+- Renaming a memory file (or `INDEX.md→index.md`) with a bare `mv` and leaving inbound links
+  dangling — every rename needs the repo-wide reference fixup (Phase 4 step 4).
+- Inventing `description`/`type` text the normalizer flagged as missing — derive from the index
+  hook or ask; an invented one-liner is worse than an empty field.
+- Hand-editing frontmatter to "fix conformance" instead of running `okf_normalize.py` — that's how
+  format drift starts.
+- Reading "group/merge related domains" (foldering) as *combine note files*. Foldering moves whole
+  files into topic dirs; it NEVER concatenates contents. One concept per file is invariant; merging
+  two notes that cover the same fact is a separate, deliberate dedup at capture time.
