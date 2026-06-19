@@ -25,7 +25,7 @@ Context dies three ways. Your capture must beat all three:
 ## Project conventions (check first)
 If the project has an **`ai/CAPTURE.md`**, it governs *where* and *how* knowledge is stored — follow it. In that case:
 - Session note → **`ai/session/YYYY-MM-DD-topic.md`** (not `notes/`).
-- Durable learnings → **atomic files in `ai/memory/`** + a pointer in `ai/memory/INDEX.md` (not `~/.claude/.../memory/`, which is the opaque, non-portable store). The in-repo `ai/` folder is the canonical, git-tracked source of truth.
+- Durable learnings → **atomic files in `ai/memory/`** + a pointer in `ai/memory/index.md` (not `~/.claude/.../memory/`, which is the opaque, non-portable store). The in-repo `ai/` folder is the canonical, git-tracked source of truth.
 - Use the atomic file format and the "posted intent" decision format from `ai/CAPTURE.md`.
 If there is no `ai/CAPTURE.md`, use the defaults below (and consider running `/init-ai-workspace`).
 
@@ -65,9 +65,21 @@ For the key work, classify each path:
 State plainly in the session note + runbook what is NOT safe. **If important work is untracked, recommend (and offer to make) a commit** — branch named per the ticket, honoring the repo's commit rules (e.g. no AI attribution if that's the policy). Don't commit without the human's go-ahead unless the policy says otherwise.
 
 ## Phase 5 — Memory sweep (what's worth remembering, what's now wrong)
-- **New durable learnings?** If the project has `ai/memory/`, write them there as atomic files (`gotcha_`/`schema_`/`decision_`/`pattern_`/`runbook_`) per `ai/CAPTURE.md` + an `INDEX.md` pointer — that is the canonical, in-repo, portable store. Otherwise capture as memory: `user` (who/preferences), `feedback` (how to work, with the why), `project` (ongoing state/decisions not derivable from code), `reference` (endpoints, keys, external pointers). Don't save what the repo/git already records.
+- **New durable learnings?** If the project has `ai/memory/`, write them there as atomic files (`gotcha_`/`schema_`/`decision_`/`pattern_`/`runbook_`/`reference_`) per `ai/CAPTURE.md` + an `index.md` pointer — that is the canonical, in-repo, portable store. Otherwise capture as memory: `user` (who/preferences), `feedback` (how to work, with the why), `project` (ongoing state/decisions not derivable from code), `reference` (endpoints, keys, external pointers). Don't save what the repo/git already records.
 - **Stale/wrong memory?** If this session contradicted an existing memory, fix or delete it (note when a prior memory misled you — that's a high-value correction).
-- **Index** — add/refresh the one-line pointer in the memory index so it's discoverable next session.
+- **Index — regenerate, don't hand-edit** (if `ai/memory/` is an OKF bundle): the index is generated.
+  After writing/editing notes run `python <init-ai-workspace-skill-dir>/okf_normalize.py ai/memory --reindex`
+  to rebuild root + per-topic `index.md` from frontmatter (durable prose above the
+  `<!-- okf-index:auto -->` marker is preserved).
+- **OKF conformance — run the tool, don't eyeball it** (see `ai/CAPTURE.md`): run
+  `python <init-ai-workspace-skill-dir>/okf_normalize.py ai/memory` (dry-run). If it reports any
+  frontmatter drift on the notes you touched (missing `type`, `updated`→`timestamp`, absent
+  `description`/`tags`), re-run with `--apply`; if it reports renames, run `/init-ai-workspace`
+  Phase 4 (which handles foldering + reference fixups) rather than a bare `mv`. The session is not
+  "captured" until it reports 0 drift.
+- **Link new notes inline** — when a new note genuinely relates to an existing one, add an inline
+  markdown link between their bodies (`[other note](type_slug.md)`). That's what populates the OKF
+  graph; cross-references that live only in `index.md` leave the graph disconnected.
 
 ## Phase 6 — Loose ends, caveats & decisions
 - **Open bugs / deferred work** → a backlog file (`ai/plans/...-known-gaps.md` or similar) with *what / why / where / fix* per item, prioritized.
@@ -76,6 +88,7 @@ State plainly in the session note + runbook what is NOT safe. **If important wor
 
 ## Phase 7 — Sync the surfaces (stale docs lie)
 - Are design docs, runbooks, dashboards, and reports consistent with what's actually true now? Regenerate generated artifacts (dashboards/rollups). Add a status banner or update to anything that now overstates/understates reality. Stale "current status" docs are worse than none.
+- **Regenerate the knowledge graph** if the project ships the OKF viewer (`ai/scripts/okf-viewer/render.py` or equivalent) and you touched `ai/memory/` this session — its HTML is a generated artifact like any dashboard.
 
 ## Phase 8 — Ask the human (only they know these)
 Use the question tool for the genuinely human-only inputs, e.g.:
