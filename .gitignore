@@ -5,3 +5,6 @@ auth-state.json
 bin/
 obj/
 *.log
+__pycache__/
+*.pyc
+*.stackdump

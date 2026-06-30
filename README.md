@@ -40,9 +40,15 @@ These three compose into a pipeline: crawl a site → batch-scan every page → 
 
 - **GoogleDocs** — `gdoc.py`/`gsheet.py`: OAuth-authenticated CLIs that fill the gap left by the Google Drive MCP, which can read/copy/create files but cannot edit Doc content. Append sections, find/replace, delete-and-redo sections, surgical Sheet cell writes.
 
+### CRM
+
+- **HubSpot** — Battle-tested HubSpot CRM API knowledge base: rate limits, the quote status lifecycle and the unlock-edit-relock pattern for locked quotes, line-item CRUD, association type IDs, a HubSpot→DynamoDB sync architecture, and a long list of hard-won gotchas (v13 associations API move, delete-is-archive, computed quote amounts, MSYS path conversion). Pure reference — no code to run.
+- **HubSpotProjects** — `hsproj.py`: a zero-dependency Python CLI for the HubSpot Project custom object (`0-970`). Create, update, close/cancel, comment (plain text auto-formatted into tight HubSpot-friendly HTML), and list/filter projects by owner or stage. Portal ID, pipeline UUID, and stage UUIDs are configurable for your own portal.
+
 ## Notes
 
 - Example URLs in docs use `example.com` placeholders — point the tools at your own sites.
+- The HubSpot skills ship with placeholders (`YOUR_PORTAL_ID`, `<your-project-pipeline-id>`, `<…-stage-id>`) — set `HUBSPOT_PORTAL_ID` / `HUBSPOT_PROJECT_PIPELINE_ID` and fill in your portal's stage UUIDs (see `HubSpotProjects/REFERENCE.md`). The token comes from `HUBSPOT_PROJECTS_TOKEN` or `~/.hubspot_projects_token` — never committed.
 - `BrailleTest/Tools/credentials.ts` is a stub: add your own test accounts (never production credentials).
 - Skills reference an optional customization directory (`PAI/USER/SKILLCUSTOMIZATIONS/`) from [danielmiessler/PAI](https://github.com/danielmiessler/PAI); without PAI installed they just use their defaults.
 
